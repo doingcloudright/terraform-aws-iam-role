@@ -64,9 +64,10 @@ data "aws_iam_policy_document" "trust_policy" {
 
 
 data "aws_iam_policy_document" "this" {
+  for_each = { for i in var.inline_policies : i.name => var.inline_policies[i] }
 
   dynamic "statement" {
-    for_each = var.inline_policies[count.index].statements
+    for_each = each.value.statements
 
     content {
       sid       = lookup(statement.value, "sid", "")
@@ -78,12 +79,14 @@ data "aws_iam_policy_document" "this" {
 }
 
 resource "aws_iam_role_policy" "this" {
-  name   = lookup(var.inline_policies[count.index], "name")
-  role   = element(concat(aws_iam_role.this.*.id, [""]), 0)
-  policy = data.aws_iam_policy_document.this[count.index].json
+  for_each = { for i in var.inline_policies : i.name => var.inline_policies[i] }
+  name   = each.key
+  role   = aws_iam_role.this.id
+  policy = data.aws_iam_policy_document.this[each.key].json
 }
 
 resource "aws_iam_role_policy_attachment" "this" {
-  role       = element(concat(aws_iam_role.this.*.id, [""]), 0)
-  policy_arn = var.attach_policy_arns[count.index]
+  for_each = toset(var.attach_policy_arns)
+  role       = aws_iam_role.this.id
+  policy_arn = each.value
 }
