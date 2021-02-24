@@ -13,7 +13,7 @@ module "label" {
 # -------------------------------------------------------------------------------------------------
 
 resource "aws_iam_role" "this" {
-  name  = module.label.id
+  name = module.label.id
 
   assume_role_policy = element(concat(data.aws_iam_policy_document.trust_policy.*.json, [""]), 0)
   description        = "description"
@@ -64,7 +64,7 @@ data "aws_iam_policy_document" "trust_policy" {
 
 
 data "aws_iam_policy_document" "this" {
-  for_each = { for i in var.inline_policies : i.name => var.inline_policies[i] }
+  for_each = { for k, v in var.inline_policies : v.name => v }
 
   dynamic "statement" {
     for_each = each.value.statements
@@ -79,14 +79,14 @@ data "aws_iam_policy_document" "this" {
 }
 
 resource "aws_iam_role_policy" "this" {
-  for_each = { for i in var.inline_policies : i.name => var.inline_policies[i] }
-  name   = each.key
-  role   = aws_iam_role.this.id
-  policy = data.aws_iam_policy_document.this[each.key].json
+  for_each = { for k, v in var.inline_policies : v.name => v }
+  name     = each.key
+  role     = aws_iam_role.this.id
+  policy   = data.aws_iam_policy_document.this[each.key].json
 }
 
 resource "aws_iam_role_policy_attachment" "this" {
-  for_each = toset(var.attach_policy_arns)
+  for_each   = toset(var.attach_policy_arns)
   role       = aws_iam_role.this.id
   policy_arn = each.value
 }
